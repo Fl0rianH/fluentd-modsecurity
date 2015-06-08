@@ -7,9 +7,6 @@ This is intended to serve as an example starting point for how to ingest
 parse entries from a ModSecurity audit log file using Fluentd into a more first-class
 structured object that can then be forwarded on to another output.
 
-This depends on the tail_multiline Fluentd input plugin located 
-at https://github.com/tomohisaota/fluent-plugin-tail-multiline
-
 see: http://fluentd.org/
 
 see: https://github.com/SpiderLabs/ModSecurity/wiki/ModSecurity-2-Data-Formats
@@ -20,10 +17,7 @@ More info and example output: http://bitsofinfo.wordpress.com/2013/11/11/modsecu
 
 To install this output filter plugin:
 
-(1) Install geoip support, instructions here: https://github.com/mtodd/geoip
-
-
-(2) Run the following commands from the root of this project
+(1) Run the following commands from the root of this project
 
 ```
 gem build fluent-plugin-modsecurity.gemspec
