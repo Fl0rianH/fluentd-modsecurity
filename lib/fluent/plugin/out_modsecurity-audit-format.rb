@@ -193,7 +193,7 @@ class ModsecurityAuditFormat < Fluent::Output
      if section =~ /.+/
        
        # line 1
-       matchData = section.match(/(?<serverProtocol>.+?)\s(?<responseStatus>.+)\n{1}/)
+       matchData = section.match(/(?<serverProtocol>.+?)\s(?<responseCode>[0-9]+)\s(?<responseStatus>.+)\n{1}/)
        hash = Hash[ matchData.names.zip(matchData.captures)]
        
        # response headers
@@ -221,9 +221,27 @@ class ModsecurityAuditFormat < Fluent::Output
   
   
    def extractVal(pattern, fromString, storeResultIn, underKeyName)
-     result = pattern.match(fromString)
-     if !result.nil?
-       storeResultIn[underKeyName] = result[1]
+     result = fromString.scan(pattern)
+     if !result[0].nil?
+       if result.length == 1
+          storeResultIn[underKeyName] = result[0][0]
+       else
+          storeResultIn[underKeyName] = result.flatten
+       end
+     end
+   end
+
+   def extract_tags(pattern, fromString, storeResultIn)
+     result = fromString.scan(pattern)
+     if !result[0].nil?
+        result = result.flatten
+        result.each do |tag|
+           splitted_tag = tag.split('/')
+           tag_name = splitted_tag[0]
+           # Removing tag name from Array 
+           splitted_tag.delete_at(0)
+           storeResultIn[tag_name.downcase] = splitted_tag.join('/')
+        end
      end
    end
   
@@ -244,14 +262,14 @@ class ModsecurityAuditFormat < Fluent::Output
          trailer_array.each do |entry|
            if entry.match(/^Message: /)
               msg = Hash.new()
-              extractVal(/Message: (.+)\s($|(\s*\[file))/, entry, msg, 'info')
+              extractVal(/Message: (.+)\s(?:$|(?:\s*\[file))/, entry, msg, 'info')
               extractVal(/\[file \"(.*?)\"\]/, entry, msg, 'file')
               extractVal(/\[line \"(.*?)\"\]/, entry, msg, 'line')
               extractVal(/\[id \"(.*?)\"\]/, entry, msg, 'id')
               extractVal(/\[msg \"(.*?)\"\]/, entry, msg, 'msg')
               extractVal(/\[severity \"(.*?)\"\]/, entry, msg, 'severity')
               extractVal(/\[data \"(.*?)\"\]/, entry, msg, 'data')
-              extractVal(/\[tag \"(.*?)\"\]/, entry, msg, 'tag')
+              extract_tags(/\[tag \"(.*?)\"\]/, entry, hash)
               auditLogTrailerMessages.push(msg); 
            end
         end
