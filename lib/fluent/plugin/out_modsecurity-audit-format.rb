@@ -116,7 +116,7 @@ class ModsecurityAuditFormat < Fluent::Output
      if section.nil?
         return Hash.new
      end
-     matchData = section.match(/\[(?<modsec_timestamp>.+)\]\s(?<uniqueId>.+)\s(?<src_ip>.+)\s(?<src_port>.+)\s(?<dst_ip>.+)\s(?<dst_port>.+)/)
+     matchData = section.match(/\[(?<modsec_timestamp>.+)\]\s(?<unique_id>.+)\s(?<src_ip>.+)\s(?<src_port>.+)\s(?<dst_ip>.+)\s(?<dst_port>.+)/)
      hash = Hash[matchData.names.zip(matchData.captures)]
      return hash
   end
@@ -128,12 +128,12 @@ class ModsecurityAuditFormat < Fluent::Output
      # line #1
      if section =~ /.*?\s\S+\s.+\n{1}/
     
-       matchData = section.match(/(?<httpMethod>.*?)\s(?<requestedUri>\S+)\s(?<incomingProtocol>.+)\n{1}/)
+       matchData = section.match(/(?<http_method>\S+)(?: +(?<requested_uri>[^ ]*) +(?<incoming_protocol>[\S]*))?/)
        hash = hash.merge(Hash[matchData.names.zip(matchData.captures)])
        
      else 
        
-       matchData = section.match(/(?<httpMethod>^(.*)$)/)
+       matchData = section.match(/(?<http_method>^(.*)$)/)
        hash = hash.merge(Hash[matchData.names.zip(matchData.captures)])
 
      end
@@ -141,29 +141,29 @@ class ModsecurityAuditFormat < Fluent::Output
      # request headers
      if section =~ /.+\n(?m).+/
        
-       matchData = section.match(/.+\n(?m)(?<raw_requestHeaders>.+)/)
+       matchData = section.match(/.+\n(?m)(?<raw_request_headers>.+)/)
        hash = hash.merge(Hash[matchData.names.zip(matchData.captures)])
        
            
-       if hash['raw_requestHeaders'] =~ /X-Forwarded-For:/
-          matchData = hash['raw_requestHeaders'].match(/X-Forwarded-For: (?<XForwardedFor>.+)$/)
+       if hash['raw_request_headers'] =~ /X-Forwarded-For:/
+          matchData = hash['raw_request_headers'].match(/X-Forwarded-For: (?<XForwardedFor>.+)$/)
           hash = hash.merge(Hash[matchData.names.zip(matchData.captures)]) 
        end 
        
        # example of getting a custom cookie and promoting to 1st class field
-       if hash['raw_requestHeaders'] =~ /Cookie:/ and hash['raw_requestHeaders'] =~ /myCookie=.+\b/
-          matchData = hash['raw_requestHeaders'].match(/(?<myCookie>myCookie[^; \s]+)/)
+       if hash['raw_request_headers'] =~ /Cookie:/ and hash['raw_request_headers'] =~ /myCookie=.+\b/
+          matchData = hash['raw_request_headers'].match(/(?<myCookie>myCookie[^; \s]+)/)
           hash = hash.merge(Hash[matchData.names.zip(matchData.captures)]) 
        end 
        
        # split all request headers into a sub-map
-       hash['requestHeaders'] = Hash.new
-       hash['raw_requestHeaders'].split(/\n/).each do |header|
+       hash['request_headers'] = Hash.new
+       hash['raw_request_headers'].split(/\n/).each do |header|
             parts = header.split(/:/)
-            hash['requestHeaders'][parts[0].strip] = parts[1].strip
+            hash['request_headers'][parts[0].strip] = parts[1].strip
        end
        
-       hash.delete('raw_requestHeaders')
+       hash.delete('raw_request_headers')
        
      end
      
@@ -176,7 +176,7 @@ class ModsecurityAuditFormat < Fluent::Output
     
      if section =~ /.+/
     
-       matchData = section.match(/(?<requestBody>.+)/)
+       matchData = section.match(/(?<request_body>.+)/)
        hash = Hash[ matchData.names.zip(matchData.captures)]
        return hash
        
@@ -193,20 +193,20 @@ class ModsecurityAuditFormat < Fluent::Output
      if section =~ /.+/
        
        # line 1
-       matchData = section.match(/(?<serverProtocol>.+?)\s(?<responseCode>[0-9]+)\s(?<responseStatus>.+)\n{1}/)
+       matchData = section.match(/(?<server_protocol>.+?)\s(?<response_code>[0-9]+)\s(?<response_status>.+)\n{1}/)
        hash = Hash[ matchData.names.zip(matchData.captures)]
        
        # response headers
-       matchData = section.match(/.+\n(?m)(?<raw_responseHeaders>.+)/)
+       matchData = section.match(/.+\n(?m)(?<raw_response_headers>.+)/)
        hash = hash.merge(Hash[ matchData.names.zip(matchData.captures)])
        
-       hash['responseHeaders'] = Hash.new
-       hash['raw_responseHeaders'].split(/\n/).each do |header|
+       hash['response_headers'] = Hash.new
+       hash['raw_response_headers'].split(/\n/).each do |header|
             parts = header.split(/:/)
-            hash['responseHeaders'][parts[0].strip] = parts[1].strip
+            hash['response_headers'][parts[0].strip] = parts[1].strip
        end
        
-       hash.delete('raw_responseHeaders')
+       hash.delete('raw_response_headers')
      
      else 
        
@@ -326,8 +326,8 @@ class ModsecurityAuditFormat < Fluent::Output
        end
        
        hash = Hash.new
-       hash['secRuleIds'] = secRuleIds
-       hash['matchedRules'] = matchedRules_array
+       hash['sec_rules_ids'] = secRuleIds
+       hash['matched_rules'] = matchedRules_array
        return hash
 
      else 
